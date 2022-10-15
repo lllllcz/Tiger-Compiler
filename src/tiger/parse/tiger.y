@@ -98,7 +98,7 @@ exp:
 
   |  LPAREN RPAREN  {$$ = new absyn::VoidExp(scanner_.GetTokPos());}
   |  LPAREN exp RPAREN  {$$ = $2;}
-  |  LPAREN sequencing RPAREN  {$$ = new absyn::SeqExp(scanner_.GetTokPos(), $2);}
+  |  LPAREN expseq RPAREN  {$$ = $2;}
 
   |  FOR ID ASSIGN exp TO exp DO exp  {$$ = new absyn::ForExp(scanner_.GetTokPos(), $2, $4, $6, $8);}
 
@@ -111,6 +111,7 @@ exp:
   |  WHILE LPAREN exp RPAREN DO exp  {$$ = new absyn::WhileExp(scanner_.GetTokPos(), $3, $6);}
 
   |  ID LPAREN sequencing RPAREN  {$$ = new absyn::CallExp(scanner_.GetTokPos(), $1, $3);}
+  |  ID LPAREN actuals RPAREN  {$$ = new absyn::CallExp(scanner_.GetTokPos(), $1, $3);}
   |  ID LPAREN RPAREN  {$$ = new absyn::CallExp(scanner_.GetTokPos(), $1, new absyn::ExpList());}
 
   |  ID LBRACE RBRACE  {$$ = new absyn::RecordExp(scanner_.GetTokPos(), $1, new absyn::EFieldList());}
@@ -136,7 +137,8 @@ expseq:
   ;
 
 actuals:
-       COMMA nonemptyactuals  {$$ = $2;}
+     {$$ = nullptr;}
+  |  COMMA nonemptyactuals  {$$ = $2;}
   |  nonemptyactuals  {$$ = $1;}
   ;
 nonemptyactuals:
@@ -144,23 +146,32 @@ nonemptyactuals:
   |  exp COMMA nonemptyactuals  {$$ = $3; $$->Prepend($1);}
   ;
 sequencing:
-       SEMICOLON sequencing_exps  {$$ = $2;}
+     {$$ = nullptr;}
+  |  SEMICOLON sequencing_exps  {$$ = $2;}
   |  sequencing_exps  {$$ = $1;}
   ;
 sequencing_exps:
      exp  {$$ = new absyn::ExpList($1);}
   |  exp SEMICOLON sequencing_exps  {$$ = $3; $$->Prepend($1);}
   ;
+// expseq:
+//   sequencing_exps {$$ = new absyn::SeqExp(scanner_.GetTokPos(), $1);};
+
+// sequencing_exps:
+//   exp {$$ = new absyn::ExpList($1);} |
+//   exp COMMA sequencing_exps {$$ = $3; $$->Prepend($1);} |
+//   exp SEMICOLON sequencing_exps {$$ = $3; $$->Prepend($1); };
 
 
 decs:
-       decs_nonempty  {$$ = $1;}
+     {$$ = nullptr;}
+  |  decs_nonempty  {$$ = $1;}
   ;
 decs_nonempty:
      decs_nonempty_s  {$$ = new absyn::DecList($1);}
-  |  decs_nonempty_s decs  {$$ = $2; $$->Prepend($1);}
+  |  decs_nonempty_s decs_nonempty  {$$ = $2; $$->Prepend($1);}
   |  vardec  {$$ = new absyn::DecList($1);}
-  |  vardec decs  {$$ = $2; $$->Prepend($1);}
+  |  vardec decs_nonempty  {$$ = $2; $$->Prepend($1);}
   ;
 
 decs_nonempty_s:
@@ -174,12 +185,13 @@ vardec:
 
 
 rec:
-       COMMA rec_nonempty  {$$ = $2;}
+     {$$ = nullptr;}
+  |  COMMA rec_nonempty  {$$ = $2;}
   |  rec_nonempty  {$$ = $1;}
   ;
 rec_nonempty:
      rec_one  {$$ = new absyn::EFieldList($1);}
-  |  rec_one COMMA rec  {$$ = $3; $$->Prepend($1);}
+  |  rec_one COMMA rec_nonempty  {$$ = $3; $$->Prepend($1);}
   ;
 
 rec_one:
@@ -196,10 +208,13 @@ tydec_one:
 
 
 tyfields:
-       tyfields_nonempty  {$$ = $1;}
+     {$$ = nullptr;}
+  |  tyfields_nonempty  {$$ = $1;}
   ;
 tyfields_nonempty:
-     tyfield COMMA tyfields_nonempty  {$$ = $3; $$->Prepend($1);};
+     tyfield  {$$ = new absyn::FieldList($1);}
+  |  tyfield COMMA tyfields_nonempty  {$$ = $3; $$->Prepend($1);}
+  ;
 
 tyfield:
      ID COLON ID  {$$ = new absyn::Field(scanner_.GetTokPos(), $1, $3);};
