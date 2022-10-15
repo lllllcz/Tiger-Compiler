@@ -83,7 +83,7 @@ one:
      ID LBRACK exp RBRACK  {$$ = new absyn::SubscriptVar(scanner_.GetTokPos(), new absyn::SimpleVar(scanner_.GetTokPos(), $1), $3);}
   |  ID DOT ID  {$$ = new absyn::FieldVar(scanner_.GetTokPos(), new absyn::SimpleVar(scanner_.GetTokPos(), $1), $3);}
   ;
-  
+
 exp:
      INT  {$$ = new absyn::IntExp(scanner_.GetTokPos(), $1);}
   |  STRING  {$$ = new absyn::StringExp(scanner_.GetTokPos(), $1);}
@@ -232,4 +232,3 @@ fundec_one:
   |  ID LPAREN tyfields RPAREN EQ LPAREN exp RPAREN  {$$ = new absyn::FunDec(scanner_.GetTokPos(), $1, $3, nullptr, $7);}
   |  ID LPAREN RPAREN EQ LPAREN exp RPAREN  {$$ = new absyn::FunDec(scanner_.GetTokPos(), $1, new absyn::FieldList(), nullptr, $6);}
   ;
-
