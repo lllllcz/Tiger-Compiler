@@ -98,7 +98,7 @@ exp:
 
   |  LPAREN RPAREN  {$$ = new absyn::VoidExp(scanner_.GetTokPos());}
   |  LPAREN exp RPAREN  {$$ = $2;}
-  |  LPAREN expseq RPAREN  {$$ = new absyn::SeqExp(scanner_.GetTokPos(), $2);}
+  |  LPAREN sequencing RPAREN  {$$ = new absyn::SeqExp(scanner_.GetTokPos(), $2);}
 
   |  FOR ID ASSIGN exp TO exp DO exp  {$$ = new absyn::ForExp(scanner_.GetTokPos(), $2, $4, $6, $8);}
 
@@ -110,7 +110,7 @@ exp:
   |  WHILE exp DO exp  {$$ = new absyn::WhileExp(scanner_.GetTokPos(), $2, $4);}
   |  WHILE LPAREN exp RPAREN DO exp  {$$ = new absyn::WhileExp(scanner_.GetTokPos(), $3, $6);}
 
-  |  ID LPAREN expseq RPAREN  {$$ = new absyn::CallExp(scanner_.GetTokPos(), $1, $3);}
+  |  ID LPAREN sequencing RPAREN  {$$ = new absyn::CallExp(scanner_.GetTokPos(), $1, $3);}
   |  ID LPAREN RPAREN  {$$ = new absyn::CallExp(scanner_.GetTokPos(), $1, new absyn::ExpList());}
 
   |  ID LBRACE RBRACE  {$$ = new absyn::RecordExp(scanner_.GetTokPos(), $1, new absyn::EFieldList());}
@@ -136,8 +136,7 @@ expseq:
   ;
 
 actuals:
-     {$ = new absyn::VoidExp(scanner_.GetTokPos());}
-  |  COMMA nonemptyactuals  {$$ = $1;}
+       COMMA nonemptyactuals  {$$ = $2;}
   |  nonemptyactuals  {$$ = $1;}
   ;
 nonemptyactuals:
@@ -145,8 +144,7 @@ nonemptyactuals:
   |  exp COMMA nonemptyactuals  {$$ = $3; $$->Prepend($1);}
   ;
 sequencing:
-     {$ = new absyn::VoidExp(scanner_.GetTokPos());}
-  |  SEMICOLON sequencing_exps  {$$ = $1;}
+       SEMICOLON sequencing_exps  {$$ = $2;}
   |  sequencing_exps  {$$ = $1;}
   ;
 sequencing_exps:
@@ -156,8 +154,7 @@ sequencing_exps:
 
 
 decs:
-     {$ = new absyn::VoidExp(scanner_.GetTokPos());}
-  |  decs_nonempty_s  {$$ = $1;}
+       decs_nonempty  {$$ = $1;}
   ;
 decs_nonempty:
      decs_nonempty_s  {$$ = new absyn::DecList($1);}
@@ -177,8 +174,7 @@ vardec:
 
 
 rec:
-     {$ = new absyn::VoidExp(scanner_.GetTokPos());}
-  |  COMMA rec_nonempty  {$$ = $1;}
+       COMMA rec_nonempty  {$$ = $2;}
   |  rec_nonempty  {$$ = $1;}
   ;
 rec_nonempty:
@@ -200,14 +196,13 @@ tydec_one:
 
 
 tyfields:
-     {$ = new absyn::VoidExp(scanner_.GetTokPos());}
-  |  tyfields_nonempty  {$$ = $1;}
+       tyfields_nonempty  {$$ = $1;}
   ;
 tyfields_nonempty:
-     tyfield COMMA tyfields_nonempty  {$$ = $5; $$->Prepend(new absyn::Field(scanner_.GetTokPos(), $1, $3));};
+     tyfield COMMA tyfields_nonempty  {$$ = $3; $$->Prepend($1);};
 
 tyfield:
-     ID COLON ID  {$$ = new absyn::FieldList(new absyn::Field(scanner_.GetTokPos(), $1, $3));}
+     ID COLON ID  {$$ = new absyn::Field(scanner_.GetTokPos(), $1, $3);};
 
 
 ty:
