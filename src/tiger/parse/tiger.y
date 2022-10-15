@@ -232,3 +232,4 @@ fundec_one:
   |  ID LPAREN tyfields RPAREN EQ LPAREN exp RPAREN  {$$ = new absyn::FunDec(scanner_.GetTokPos(), $1, $3, nullptr, $7);}
   |  ID LPAREN RPAREN EQ LPAREN exp RPAREN  {$$ = new absyn::FunDec(scanner_.GetTokPos(), $1, new absyn::FieldList(), nullptr, $6);}
   ;
+
