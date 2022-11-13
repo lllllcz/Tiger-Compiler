@@ -48,9 +48,8 @@ void StringExp::Traverse(esc::EscEnvPtr env, int depth) {
 }
 
 void CallExp::Traverse(esc::EscEnvPtr env, int depth) {
-  /* Put your lab5 code here */
-  auto list = args_->GetList();
-  for (auto ele : list)
+  /* Put your lab5 code here */;
+  for (auto ele : args_->GetList())
     ele->Traverse(env, depth);
 }
 
@@ -61,16 +60,14 @@ void OpExp::Traverse(esc::EscEnvPtr env, int depth) {
 }
 
 void RecordExp::Traverse(esc::EscEnvPtr env, int depth) {
-  /* Put your lab5 code here */
-  auto list = fields_->GetList();
-  for (auto ele : list)
+  /* Put your lab5 code here */;
+  for (auto ele : fields_->GetList())
     ele->exp_->Traverse(env, depth);
 }
 
 void SeqExp::Traverse(esc::EscEnvPtr env, int depth) {
   /* Put your lab5 code here */
-  auto list = seq_->GetList();
-  for (auto ele : list)
+  for (auto ele : seq_->GetList())
     ele->Traverse(env, depth);
 }
 
@@ -109,9 +106,8 @@ void BreakExp::Traverse(esc::EscEnvPtr env, int depth) {
 }
 
 void LetExp::Traverse(esc::EscEnvPtr env, int depth) {
-  /* Put your lab5 code here */
-  auto list = decs_->GetList();
-  for (auto ele : list)
+  /* Put your lab5 code here */;
+  for (auto ele : decs_->GetList())
     ele->Traverse(env, depth);
   if (body_) body_->Traverse(env, depth);
 }
@@ -128,8 +124,7 @@ void VoidExp::Traverse(esc::EscEnvPtr env, int depth) {
 
 void FunctionDec::Traverse(esc::EscEnvPtr env, int depth) {
   /* Put your lab5 code here */
-  auto fuclist = functions_->GetList();
-  for (auto fuc : fuclist) {
+  for (auto fuc : functions_->GetList()) {
     env->BeginScope();
 
     auto paramlist = fuc->params_->GetList();

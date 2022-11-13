@@ -12,8 +12,7 @@ public:
   /* Put your lab5 code here */
   
   tree::Exp *toExp(tree::Exp *fp = nullptr) const override {
-    auto *binopExp = new tree::BinopExp(tree::BinOp::PLUS_OP, fp, new tree::ConstExp(offset));
-    return new tree::MemExp(binopExp);
+    return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, fp, new tree::ConstExp(offset)));
   }
 
 };
@@ -37,21 +36,18 @@ class X64Frame : public Frame {
   public:
   explicit X64Frame(temp::Label* name, std::list<bool> escapes) : Frame(name) {
     offset = -8;
-
     for (auto escape : escapes) {
       formals_.push_back(allocLocal(escape));
     }
   };
 
   frame::Access *allocLocal(bool escape) override {
-    Access *access;
     if (escape) {
-      access = new InFrameAccess(offset);
       offset -= reg_manager->WordSize();
+      return new InFrameAccess(offset);
     } else {
-      access = new InRegAccess(temp::TempFactory::NewTemp());
+      return new InRegAccess(temp::TempFactory::NewTemp());
     }
-    return access;
   }
 
 };
@@ -74,7 +70,7 @@ X64RegManager::X64RegManager () {
     "r12",
     "r13",
     "r14",
-    "r5"
+    "r15"
   };
 
   for (auto name: reg_names) {
@@ -89,7 +85,7 @@ temp::TempList *X64RegManager::Registers() {
 
   temp::TempList * temp_list = new temp::TempList();
 
-    for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < 16; i++) {
 
     // skip %rsp
     if (i == 7) continue;
@@ -173,17 +169,15 @@ tree::Exp* FrameFactory::ExternalCall(const std::string name, tree::ExpList* arg
   return new tree::CallExp(new tree::NameExp(temp::LabelFactory::NamedLabel(name)), args);
 };
 
-tree::Stm* FrameFactory::ProcEntryExit1(Frame* frame, tree::Stm* stm) {
-  int num = 0;
-
-  tree::Stm* viewshift = new tree::ExpStm(new tree::ConstExp(0));
-
-  for (Access *access : frame->formals_) {
-    if (reg_manager->GetRegister(num));
-      viewshift = new tree::SeqStm(viewshift, new tree::MoveStm(access->toExp(new tree::TempExp(reg_manager->FramePointer())), new tree::TempExp(reg_manager->GetRegister(num))));
-    num += 1;
-  };
-  return new tree::SeqStm(viewshift, stm);
-};
+// tree::Stm* FrameFactory::ProcEntryExit1(Frame* frame, tree::Stm* stm) {
+//   int num = 0;
+//   tree::Stm* viewshift = new tree::ExpStm(new tree::ConstExp(0));
+//   for (Access *access : frame->formals_) {
+//     if (reg_manager->GetRegister(num));
+//       viewshift = new tree::SeqStm(viewshift, new tree::MoveStm(access->toExp(new tree::TempExp(reg_manager->FramePointer())), new tree::TempExp(reg_manager->GetRegister(num))));
+//     num += 1;
+//   };
+//   return new tree::SeqStm(viewshift, stm);
+// };
 
 } // namespace frame

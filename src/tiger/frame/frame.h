@@ -131,8 +131,8 @@ private:
 class FrameFactory {
 public:
   static Frame *NewFrame(temp::Label *label, const std::list<bool> &formals);
-  static tree::Stm *ProcEntryExit1(Frame *f, tree::Stm *stm);
   static tree::Exp *ExternalCall(const std::string name, tree::ExpList *args);
+  // static tree::Stm *ProcEntryExit1(Frame *f, tree::Stm *stm);
 };
 
 } // namespace frame
