@@ -68,14 +68,27 @@ protected:
 
 class Access {
 public:
-  /* TODO: Put your lab5 code here */
+  /* Put your lab5 code here */
   
   virtual ~Access() = default;
+  
+  virtual tree::Exp *toExp(tree::Exp *fp = nullptr) const = 0;
   
 };
 
 class Frame {
-  /* TODO: Put your lab5 code here */
+  /* Put your lab5 code here */
+
+public:
+  temp::Label *label_name_;
+  std::list<Access *> formals_;
+
+  int offset = 0;
+
+  Frame(temp::Label *name) : label_name_(name) {}
+
+  virtual Access *allocLocal(bool escape) = 0;
+
 };
 
 /**
@@ -115,6 +128,12 @@ private:
 };
 
 /* TODO: Put your lab5 code here */
+class FrameFactory {
+public:
+  static Frame *NewFrame(temp::Label *label, const std::list<bool> &formals);
+  static tree::Stm *ProcEntryExit1(Frame *f, tree::Stm *stm);
+  static tree::Exp *ExternalCall(const std::string name, tree::ExpList *args);
+};
 
 } // namespace frame
 
