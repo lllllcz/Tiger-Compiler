@@ -169,15 +169,21 @@ tree::Exp* FrameFactory::ExternalCall(const std::string name, tree::ExpList* arg
   return new tree::CallExp(new tree::NameExp(temp::LabelFactory::NamedLabel(name)), args);
 };
 
-// tree::Stm* FrameFactory::ProcEntryExit1(Frame* frame, tree::Stm* stm) {
-//   int num = 0;
-//   tree::Stm* viewshift = new tree::ExpStm(new tree::ConstExp(0));
-//   for (Access *access : frame->formals_) {
-//     if (reg_manager->GetRegister(num));
-//       viewshift = new tree::SeqStm(viewshift, new tree::MoveStm(access->toExp(new tree::TempExp(reg_manager->FramePointer())), new tree::TempExp(reg_manager->GetRegister(num))));
-//     num += 1;
-//   };
-//   return new tree::SeqStm(viewshift, stm);
-// };
+tree::Stm* FrameFactory::ProcEntryExit1(Frame* frame, tree::Stm* stm) {
+  int num = 0;
+  tree::Stm* viewshift = new tree::ExpStm(new tree::ConstExp(0));
+  for (Access *access : frame->formals_) {
+    if (reg_manager->GetRegister(num));
+      viewshift = new tree::SeqStm(
+        viewshift, 
+        new tree::MoveStm(
+          access->toExp(new tree::TempExp(reg_manager->FramePointer())), 
+          new tree::TempExp(reg_manager->GetRegister(num))
+        )
+      );
+    num += 1;
+  };
+  return new tree::SeqStm(viewshift, stm);
+};
 
 } // namespace frame
