@@ -378,7 +378,7 @@ type::TyList *FieldList::MakeFormalTyList(env::TEnvPtr tenv,
     type::Ty *ty = tenv->Look(param->typ_);
 
     if (!ty) {
-      // errormsg->Error(param->pos_, "undefined type %s", param->typ_->Name().c_str());
+      errormsg->Error(param->pos_, "undefined type %s", param->typ_->Name().c_str());
     }
     formal_tylist->Append(ty);
   }

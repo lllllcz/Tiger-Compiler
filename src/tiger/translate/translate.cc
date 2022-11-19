@@ -575,46 +575,46 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
 
-  std::list<tr::Exp *> dec_tr_list;
-  // static bool isMain = true;
+  // std::list<tr::Exp *> dec_tr_list;
+  // // static bool isMain = true;
   
-  // venv->BeginScope();
-  // tenv->BeginScope();
+  // // venv->BeginScope();
+  // // tenv->BeginScope();
   
-  for (auto dec : decs_->GetList()) {
-      dec_tr_list.push_back(dec->Translate(venv, tenv, level, label, errormsg));
-  }
+  // for (auto dec : decs_->GetList()) {
+  //     dec_tr_list.push_back(dec->Translate(venv, tenv, level, label, errormsg));
+  // }
   
-  tr::ExpAndTy * body_tr = body_->Translate(venv, tenv, level, label, errormsg);
+  // tr::ExpAndTy * body_tr = body_->Translate(venv, tenv, level, label, errormsg);
 
-  tr::Exp *exp = nullptr;
-  for (auto dec_tr : dec_tr_list) {
-    if (exp = nullptr) {
-      exp = dec_tr;
-    } else if (dec_tr) {
-      exp = new tr::ExExp(new tree::EseqExp(exp->UnNx(), dec_tr->UnEx()));
-    } else {
-      exp = new tr::ExExp(new tree::EseqExp(exp->UnNx(), new tree::ConstExp(0)));
-    }
-  }
+  // tr::Exp *exp = nullptr;
+  // for (auto dec_tr : dec_tr_list) {
+  //   if (exp = nullptr) {
+  //     exp = dec_tr;
+  //   } else if (dec_tr) {
+  //     exp = new tr::ExExp(new tree::EseqExp(exp->UnNx(), dec_tr->UnEx()));
+  //   } else {
+  //     exp = new tr::ExExp(new tree::EseqExp(exp->UnNx(), new tree::ConstExp(0)));
+  //   }
+  // }
 
-  // venv->EndScope();
-  // tenv->EndScope();
+  // // venv->EndScope();
+  // // tenv->EndScope();
 
-  tree::Exp *te = nullptr;
-  if (exp == nullptr) {
-    exp = body_tr->exp_;
-    te = exp->UnEx();
-  } else {
-    te = new tree::EseqExp(exp->UnNx(), body_tr->exp_->UnEx());
-    exp = new tr::ExExp(te);
-  }
-  // if (isMain) {
-  //   frags->PushBack(new frame::ProcFrag(new tree::ExpStm(te), level->frame_));
-  //   isMain = false;
-  // };
+  // tree::Exp *te = nullptr;
+  // if (exp == nullptr) {
+  //   exp = body_tr->exp_;
+  //   te = exp->UnEx();
+  // } else {
+  //   te = new tree::EseqExp(exp->UnNx(), body_tr->exp_->UnEx());
+  //   exp = new tr::ExExp(te);
+  // }
+  // // if (isMain) {
+  // //   frags->PushBack(new frame::ProcFrag(new tree::ExpStm(te), level->frame_));
+  // //   isMain = false;
+  // // };
 
-  return new tr::ExpAndTy(exp, body_tr->ty_);
+  // return new tr::ExpAndTy(exp, body_tr->ty_);
 }
 
 tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
