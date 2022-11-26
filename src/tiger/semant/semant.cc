@@ -38,10 +38,9 @@ type::Ty *FieldVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   const auto &list = fieldlist->GetList();
 
-  type::Ty *t = nullptr;
   for (auto it = list.begin(); it != list.end(); ++it) {
     if (sym_ == (*it)->name_) {
-        return (*it)->ty_->ActualTy();
+        return (*it)->ty_;
     }
   }
   errormsg->Error(pos_, "field %s doesn't exist", sym_->Name().data());
@@ -211,7 +210,7 @@ type::Ty *AssignExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   if (!var_ty->IsSameType(exp_ty))
     errormsg->Error(pos_, "unmatched assign exp");
 
-  return var_ty;
+  return DEFAULT_TYPE;
 }
 
 type::Ty *IfExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -246,37 +245,38 @@ type::Ty *WhileExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
       errormsg->Error(test_->pos_, "while exp's test must produce int value");
   }
   
-  if (body_) {
-    // body is not empty
-    type::Ty *body_ty =  body_->SemAnalyze(venv, tenv, labelcount + 1, errormsg);
-    if (typeid(*body_ty) != typeid(type::VoidTy)) {
-      errormsg->Error(body_->pos_, "while body must produce no value");
-    }
+  type::Ty *body_ty =  body_->SemAnalyze(venv, tenv, labelcount + 1, errormsg);
+  if (typeid(*body_ty) != typeid(type::VoidTy)) {
+    errormsg->Error(body_->pos_, "while body must produce no value");
   }
-
-  return DEFAULT_VALUE;
+  
+  return DEFAULT_TYPE;
 }
 
 type::Ty *ForExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
   /* Put your lab4 code here */
   
+  type::Ty *lo_ty = lo_->SemAnalyze(venv, tenv, labelcount, errormsg);
   type::Ty *hi_ty = hi_->SemAnalyze(venv, tenv, labelcount, errormsg);
+  if (typeid(*lo_ty) != typeid(type::IntTy)) {
+    errormsg->Error(lo_->pos_, "for exp's range type is not integer");
+  }
   if (typeid(*hi_ty) != typeid(type::IntTy)) {
     errormsg->Error(hi_->pos_, "for exp's range type is not integer");
   }
 
-  if (body_) {
-    venv->BeginScope();
-    venv->Enter(var_, new env::VarEntry(type::IntTy::Instance(), true));
-    type::Ty *body_ty = body_->SemAnalyze(venv, tenv, labelcount + 1, errormsg);
-    venv->EndScope();
+  venv->BeginScope();
+  tenv->BeginScope();
+  venv->Enter(var_, new env::VarEntry(type::IntTy::Instance(), true));
+  type::Ty *body_ty = body_->SemAnalyze(venv, tenv, labelcount + 1, errormsg);
+  venv->EndScope();
+  tenv->EndScope();
 
-    if (typeid(*body_ty) != typeid(type::VoidTy)) {
-      errormsg->Error(body_->pos_, "for exp's body must produce no value");
-    }
+  if (typeid(*body_ty) != typeid(type::VoidTy)) {
+    errormsg->Error(body_->pos_, "for exp's body must produce no value");
   }
-
+  
   return DEFAULT_TYPE;
 }
 
@@ -316,10 +316,10 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   /* Put your lab4 code here */
   type::Ty* ty = tenv->Look(typ_);
   
-  // if (!ty) {
-  //   errormsg->Error(pos_, "undefined type %s", typ_->Name().c_str());
-  //   return DEFAULT_VALUE;
-  // };
+  if (!ty) {
+    errormsg->Error(pos_, "undefined type %s", typ_->Name().c_str());
+    return DEFAULT_VALUE;
+  };
 
   ty = ty->ActualTy();
   if (typeid(*ty) != typeid(type::ArrayTy)) {
@@ -327,17 +327,18 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     return DEFAULT_VALUE;
   };
 
-  // type::Ty * size_ty = size_->SemAnalyze(venv, tenv, labelcount, errormsg);
-  // if (typeid(size_ty) != typeid(type::IntTy)) {
-  //   errormsg->Error(pos_, "undefined type %s", typ_->Name().c_str());
-  // };
+  type::Ty * size_ty = size_->SemAnalyze(venv, tenv, labelcount, errormsg);
+  if (typeid(*size_ty) != typeid(type::IntTy)) {
+    errormsg->Error(pos_, "undefined type %s", typ_->Name().c_str());
+  };
 
   type::ArrayTy* array_ty = (type::ArrayTy*) ty;
   if (!init_->SemAnalyze(venv, tenv, labelcount, errormsg)->IsSameType(array_ty->ty_)) {
     errormsg->Error(pos_, "type mismatch");
+    return DEFAULT_TYPE;
   };
 
-  return array_ty->ActualTy();
+  return array_ty;
 }
 
 type::Ty *VoidExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,

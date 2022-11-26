@@ -10,6 +10,9 @@
 namespace frame {
 class X64RegManager : public RegManager {
   /* Put your lab5 code here */
+private:
+  temp::Temp *rax, *rbx, *rcx, *rdx, *rdi, *rsi, *rbp, *rsp,
+            *r8, *r9, *r10, *r11, *r12, *r13, *r14, *r15;
 public:
   X64RegManager();
 
@@ -57,6 +60,37 @@ public:
   [[nodiscard]] temp::Temp *StackPointer() override;
 
   [[nodiscard]] temp::Temp *ReturnValue() override;
+
+  temp::Temp* GetNthArgReg(int i) {
+    switch (i)
+    {
+    case 1: return rdi;
+    case 2: return rsi;
+    case 3: return rdx;
+    case 4: return rcx;
+    case 5: return r8;
+    case 6: return r9;
+    };
+    return nullptr;
+  };
+
+  temp::Temp* RAX() { return rax; };
+  temp::Temp* RDI() { return rdi; };
+  temp::Temp* RSI() { return rsi; };
+  temp::Temp* RDX() { return rdx; };
+  temp::Temp* RCX() { return rcx; };
+  temp::Temp* R8() { return r8; };
+  temp::Temp* R9() { return r9; };
+  temp::Temp* R10() { return r10; };
+  temp::Temp* R11() { return r11; };
+  temp::Temp* RBX() { return rbx; };
+  temp::Temp* RBP() { return rbp; };
+  temp::Temp* R12() { return r12; };
+  temp::Temp* R13() { return r13; };
+  temp::Temp* R14() { return r14; };
+  temp::Temp* R15() { return r15; };
+  temp::Temp* RSP() { return rsp; };
+
 };
 
 } // namespace frame

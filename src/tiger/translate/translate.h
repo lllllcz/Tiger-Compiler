@@ -3,6 +3,8 @@
 
 #include <list>
 #include <memory>
+#include <string>
+#include <string_view>
 
 #include "tiger/absyn/absyn.h"
 #include "tiger/env/env.h"
@@ -31,9 +33,7 @@ public:
   }
 
   explicit PatchList(std::list<temp::Label **> patch_list) : patch_list_(patch_list) {}
-  explicit PatchList(temp::Label ** label) {
-    patch_list_.push_back(label);
-  }
+
   PatchList() = default;
 
   [[nodiscard]] const std::list<temp::Label **> &GetList() const {
