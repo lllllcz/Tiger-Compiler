@@ -83,10 +83,7 @@ Use `make`
 ```bash
 make gradelabx
 ```
-<<<<<<< HEAD
 
-=======
->>>>>>> master
 
 You can test all the labs by
 ```bash

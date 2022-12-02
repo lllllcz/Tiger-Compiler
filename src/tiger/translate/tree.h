@@ -68,6 +68,12 @@ class Stm {
 public:
   virtual ~Stm() = default;
 
+  enum KIND {SEQ, CJMUP, OTHER};
+
+  KIND kind_;
+
+  Stm(KIND k) : kind_(k) {};
+
   virtual void Print(FILE *out, int d) const = 0;
   virtual Stm *Canon() = 0;
   virtual void Munch(assem::InstrList &instr_list, std::string_view fs) = 0;
@@ -81,7 +87,7 @@ class SeqStm : public Stm {
 public:
   Stm *left_, *right_;
 
-  SeqStm(Stm *left, Stm *right) : left_(left), right_(right) { assert(left); }
+  SeqStm(Stm *left, Stm *right) : Stm(SEQ), left_(left), right_(right) { assert(left); }
   ~SeqStm() override;
 
   void Print(FILE *out, int d) const override;
@@ -93,7 +99,7 @@ class LabelStm : public Stm {
 public:
   temp::Label *label_;
 
-  explicit LabelStm(temp::Label *label) : label_(label) {}
+  explicit LabelStm(temp::Label *label) : Stm(OTHER), label_(label) {}
   ~LabelStm() override;
 
   void Print(FILE *out, int d) const override;
@@ -107,7 +113,7 @@ public:
   std::vector<temp::Label *> *jumps_;
 
   JumpStm(NameExp *exp, std::vector<temp::Label *> *jumps)
-      : exp_(exp), jumps_(jumps) {}
+      : Stm(OTHER), exp_(exp), jumps_(jumps) {}
   ~JumpStm() override;
 
   void Print(FILE *out, int d) const override;
@@ -123,7 +129,7 @@ public:
 
   CjumpStm(RelOp op, Exp *left, Exp *right, temp::Label *true_label,
            temp::Label *false_label)
-      : op_(op), left_(left), right_(right), true_label_(true_label),
+      : Stm(CJMUP), op_(op), left_(left), right_(right), true_label_(true_label),
         false_label_(false_label) {}
   ~CjumpStm() override;
 
@@ -136,7 +142,7 @@ class MoveStm : public Stm {
 public:
   Exp *dst_, *src_;
 
-  MoveStm(Exp *dst, Exp *src) : dst_(dst), src_(src) {}
+  MoveStm(Exp *dst, Exp *src) : Stm(OTHER), dst_(dst), src_(src) {}
   ~MoveStm() override;
 
   void Print(FILE *out, int d) const override;
@@ -148,7 +154,7 @@ class ExpStm : public Stm {
 public:
   Exp *exp_;
 
-  explicit ExpStm(Exp *exp) : exp_(exp) {}
+  explicit ExpStm(Exp *exp) : Stm(OTHER), exp_(exp) {}
   ~ExpStm() override;
 
   void Print(FILE *out, int d) const override;

@@ -16,6 +16,8 @@ class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
 
+  virtual ~RegManager() = default;
+
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
 
   /**
@@ -63,6 +65,25 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  [[nodiscard]] virtual temp::Temp* GetNthArgReg(int) = 0;
+
+  [[nodiscard]] virtual temp::Temp* RAX() = 0;
+  [[nodiscard]] virtual temp::Temp* RDI() = 0;
+  [[nodiscard]] virtual temp::Temp* RSI() = 0;
+  [[nodiscard]] virtual temp::Temp* RDX() = 0;
+  [[nodiscard]] virtual temp::Temp* RCX() = 0;
+  [[nodiscard]] virtual temp::Temp* R8() = 0;
+  [[nodiscard]] virtual temp::Temp* R9() = 0;
+  [[nodiscard]] virtual temp::Temp* R10() = 0;
+  [[nodiscard]] virtual temp::Temp* R11() = 0;
+  [[nodiscard]] virtual temp::Temp* RBX() = 0;
+  [[nodiscard]] virtual temp::Temp* RBP() = 0;
+  [[nodiscard]] virtual temp::Temp* R12() = 0;
+  [[nodiscard]] virtual temp::Temp* R13() = 0;
+  [[nodiscard]] virtual temp::Temp* R14() = 0;
+  [[nodiscard]] virtual temp::Temp* R15() = 0;
+  [[nodiscard]] virtual temp::Temp* RSP() = 0;
+  
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;
@@ -70,14 +91,28 @@ protected:
 
 class Access {
 public:
-  /* TODO: Put your lab5 code here */
+  /* Put your lab5 code here */
   
   virtual ~Access() = default;
+  
+  virtual tree::Exp *toExp(tree::Exp *fp = nullptr) const = 0;
   
 };
 
 class Frame {
-  /* TODO: Put your lab5 code here */
+  /* Put your lab5 code here */
+
+public:
+  temp::Label *label_name_;
+  std::list<Access *> formals_;
+
+  int frame_offset = 0;
+
+  Frame(temp::Label* name, std::list<bool> escapes) : label_name_(name) {};
+
+  virtual Access *allocLocal(bool escape) = 0;
+
+  virtual ~Frame() = default;
 };
 
 /**
@@ -131,7 +166,12 @@ private:
   std::list<Frag*> frags_;
 };
 
-/* TODO: Put your lab5 code here */
+/* Put your lab5 code here */
+Frame *NewFrame(temp::Label *label, const std::list<bool> &formals);
+tree::Exp* ExternalCall(std::string s, tree::ExpList* args);
+tree::Stm* ProcEntryExit1(Frame* frame, tree::Stm* stm);
+assem::InstrList* ProcEntryExit2(assem::InstrList* ilist);
+assem::Proc* ProcEntryExit3(Frame* frame, assem::InstrList* ilist);
 
 } // namespace frame
 

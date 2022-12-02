@@ -83,10 +83,10 @@ Use `make`
 ```bash
 make gradelabx
 ```
-<<<<<<< HEAD
-
-=======
->>>>>>> master
+or run the script manually
+```bash
+./scripts/grade.sh [lab1|lab2|lab3|lab4|lab5|lab6|all] # e.g. `./scripts/grade.sh lab1`
+```
 
 You can test all the labs by
 ```bash
