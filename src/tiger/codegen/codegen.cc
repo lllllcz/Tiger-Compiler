@@ -180,7 +180,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       new assem::OperInstr(
         "addq `s0, `d0",
         new temp::TempList(dst_reg),
-        new temp::TempList(right_m),
+        new temp::TempList({right_m, dst_reg}),
         nullptr
       )
     );
@@ -209,7 +209,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(
       new assem::OperInstr(
         "imulq `s0",
-        new temp::TempList({reg_manager->RDX(), reg_manager->RDX()}), // FIXME: destination register(s)? rax or rax&rdx
+        new temp::TempList({reg_manager->RDX(), reg_manager->RAX()}), // FIXME: destination register(s)? rax or rax&rdx
         new temp::TempList({right_m}), 
         nullptr
       )
@@ -234,7 +234,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(
       new assem::OperInstr(
         "cqto",
-        new temp::TempList({reg_manager->RDX(), reg_manager->RDX()}),
+        new temp::TempList({reg_manager->RDX(), reg_manager->RAX()}),
         new temp::TempList({reg_manager->RAX()}),
         nullptr
       )
@@ -242,7 +242,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(
       new assem::OperInstr(
         "idivq `s0",
-        new temp::TempList({reg_manager->RDX(), reg_manager->RDX()}), 
+        new temp::TempList({reg_manager->RDX(), reg_manager->RAX()}), 
         new temp::TempList({right_m}), 
         nullptr
       )
