@@ -69,14 +69,13 @@ void LabelStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 void JumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* Put your lab5 code here */
-  instr_list.Append(
-    new assem::OperInstr(
+  auto jump_instr = new assem::OperInstr(
       "jmp `j0", 
       nullptr, 
       nullptr, 
       new assem::Targets(jumps_)
-    )
-  );
+    );
+  instr_list.Append(jump_instr);
 }
 
 void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
@@ -135,7 +134,6 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
   if (typeid(*dst_) == typeid(tree::MemExp)) {
     tree::MemExp *dst_mem_ = (tree::MemExp *)dst_;
-    // FIXME: there can be some situations
     temp::Temp *src_m = src_->Munch(instr_list, fs);
     temp::Temp *dst_m = dst_mem_->exp_->Munch(instr_list, fs);
     instr_list.Append(
@@ -170,12 +168,11 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       new temp::TempList(dst_reg),
       new temp::TempList(left_m)
     )
-  ); // %rbp?
+  );
 
   switch (op_)
   {
   case tree::PLUS_OP: {
-    // FIXME: %rbp?
     instr_list.Append(
       new assem::OperInstr(
         "addq `s0, `d0",
@@ -187,7 +184,6 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     break;
   }
   case tree::MINUS_OP: {
-    // %rbp?
     instr_list.Append(
       new assem::OperInstr(
         "subq `s0, `d0",
@@ -202,14 +198,14 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(
       new assem::MoveInstr(
         "movq `s0, `d0",
-        new temp::TempList({reg_manager->RAX()}),
+        new temp::TempList({reg_manager->GetX64rax()}),
         new temp::TempList({dst_reg})
       )
     );
     instr_list.Append(
       new assem::OperInstr(
         "imulq `s0",
-        new temp::TempList({reg_manager->RDX(), reg_manager->RAX()}), // FIXME: destination register(s)? rax or rax&rdx
+        reg_manager->CalculateRegs(),
         new temp::TempList({right_m}), 
         nullptr
       )
@@ -218,7 +214,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       new assem::MoveInstr(
         "movq `s0, `d0", 
         new temp::TempList({dst_reg}),
-        new temp::TempList({reg_manager->RAX()})
+        new temp::TempList({reg_manager->GetX64rax()})
       )
     );
     break;
@@ -227,22 +223,22 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(
       new assem::MoveInstr(
         "movq `s0, `d0",
-        new temp::TempList({reg_manager->RAX()}),
+        new temp::TempList({reg_manager->GetX64rax()}),
         new temp::TempList({dst_reg})
       )
     );
     instr_list.Append(
       new assem::OperInstr(
         "cqto",
-        new temp::TempList({reg_manager->RDX(), reg_manager->RAX()}),
-        new temp::TempList({reg_manager->RAX()}),
+        reg_manager->CalculateRegs(),
+        new temp::TempList({reg_manager->GetX64rax()}),
         nullptr
       )
     );
     instr_list.Append(
       new assem::OperInstr(
         "idivq `s0",
-        new temp::TempList({reg_manager->RDX(), reg_manager->RAX()}), 
+        reg_manager->CalculateRegs(), 
         new temp::TempList({right_m}), 
         nullptr
       )
@@ -251,7 +247,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       new assem::MoveInstr(
         "movq `s0, `d0",
         new temp::TempList({dst_reg}), 
-        new temp::TempList({reg_manager->RAX()})
+        new temp::TempList({reg_manager->GetX64rax()})
       )
     );
     break;
@@ -410,8 +406,8 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
       reg_list->Append(*iter);
       iter++;
     }
-    else { // FIXME: how to calculate the offset?
-      std::string instr = "movq `s0, " + std::to_string(i * reg_manager->WordSize()) + "(`s1)";
+    else {
+      std::string instr = "movq `s0, " + std::to_string((i-6) * reg_manager->WordSize()) + "(`s1)";
       instr_list.Append(
         new assem::OperInstr(
           instr,

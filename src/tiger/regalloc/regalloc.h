@@ -23,11 +23,26 @@ public:
   Result(Result &&result) = delete;
   Result &operator=(const Result &result) = delete;
   Result &operator=(Result &&result) = delete;
-  ~Result();
+  ~Result() = default;
 };
 
 class RegAllocator {
   /* TODO: Put your lab6 code here */
+public:
+  frame::Frame *frame_;
+  assem::InstrList *instr_list_;
+  std::unique_ptr<ra::Result> result_;
+
+public:
+  RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> traces)
+   : frame_(frame), instr_list_(traces->GetInstrList()), result_(std::make_unique<ra::Result>()) {}
+  
+  void RegAlloc();
+
+  std::unique_ptr<ra::Result> TransferResult();
+
+  void RewriteProgram(const live::INodeList *spilledNodes);
+
 };
 
 } // namespace ra

@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <set>
 #include <sstream>
+#include <algorithm>
 
 namespace temp {
 
@@ -79,6 +80,56 @@ void Map::DumpMap(FILE *out) {
     fprintf(out, "---------\n");
     under_->DumpMap(out);
   }
+}
+
+
+bool TempList::Contain(temp::Temp *temp) const {
+  auto flag_iter = std::find(temp_list_.begin(), temp_list_.end(), temp);
+  return flag_iter != temp_list_.end();
+}
+
+bool TempList::Equal(temp::TempList *another) const {
+  return std::equal(temp_list_.begin(), temp_list_.end(), another->GetList().begin());
+}
+
+temp::TempList *TempList::Intersect(temp::TempList *another) const {
+  auto res = new temp::TempList();
+  for (auto t : temp_list_) {
+    if (another->Contain(t)) {
+      res->Append(t);
+    }
+  }
+  return res;
+}
+
+temp::TempList *TempList::Union(temp::TempList *another) const {
+  auto res = new temp::TempList();
+  res->setList(temp_list_);
+  for (auto t : another->temp_list_) {
+    if (!this->Contain(t)) {
+      res->Append(t);
+    }
+  }
+  return res;
+}
+
+temp::TempList *TempList::Diff(temp::TempList *another) const {
+  auto res = new temp::TempList();
+  for (auto t : temp_list_) {
+    if (!another->Contain(t)) {
+      res->Append(t);
+    }
+  }
+  return res;
+}
+
+void TempList::replaceTemp(temp::Temp *old_temp, temp::Temp *new_temp) {
+  auto iter = std::find(temp_list_.begin(), temp_list_.end(), old_temp);
+  *iter = new_temp;
+}
+
+void TempList::setList(std::list<Temp *> list) {
+  temp_list_ = list;
 }
 
 } // namespace temp

@@ -41,131 +41,95 @@ public:
     };
   };
   Access* allocLocal(bool escape) override {
-    Access* local = nullptr;
+    frame::Access *access;
     if (escape) {
-      local = new InFrameAccess(frame_offset);
       frame_offset -= reg_manager->WordSize();
+      access = new InFrameAccess(frame_offset);
     } else {
-      local = new InRegAccess(temp::TempFactory::NewTemp());
+      access = new InRegAccess(temp::TempFactory::NewTemp());
     }
-    return local;
+    return access;
   };
 };
 
 /* Put your lab5 code here */
 
 X64RegManager::X64RegManager() : RegManager() {
-    rax = temp::TempFactory::NewTemp();
-    rbx = temp::TempFactory::NewTemp();
-    rcx = temp::TempFactory::NewTemp();
-    rdx = temp::TempFactory::NewTemp();
-    rdi = temp::TempFactory::NewTemp();
-    rsi = temp::TempFactory::NewTemp();
-    rbp = temp::TempFactory::NewTemp();
-    rsp = temp::TempFactory::NewTemp();
-    r8 = temp::TempFactory::NewTemp();
-    r9 = temp::TempFactory::NewTemp();
-    r10 = temp::TempFactory::NewTemp();
-    r11 = temp::TempFactory::NewTemp();
-    r12 = temp::TempFactory::NewTemp();
-    r13 = temp::TempFactory::NewTemp();
-    r14 = temp::TempFactory::NewTemp();
-    r15 = temp::TempFactory::NewTemp();
+    std::vector<std::string *> names;
 
-    temp_map_->Enter(rax, new std::string("%rax"));
-    temp_map_->Enter(rbx, new std::string("%rbx"));
-    temp_map_->Enter(rcx, new std::string("%rcx"));
-    temp_map_->Enter(rdx, new std::string("%rdx"));
-    temp_map_->Enter(rdi, new std::string("%rdi"));
-    temp_map_->Enter(rsi, new std::string("%rsi"));
-    temp_map_->Enter(rbp, new std::string("%rbp"));
-    temp_map_->Enter(rsp, new std::string("%rsp"));
-    temp_map_->Enter(r8, new std::string("%r8"));
-    temp_map_->Enter(r9, new std::string("%r9"));
-    temp_map_->Enter(r10, new std::string("%r10"));
-    temp_map_->Enter(r11, new std::string("%r11"));
-    temp_map_->Enter(r12, new std::string("%r12"));
-    temp_map_->Enter(r13, new std::string("%r13"));
-    temp_map_->Enter(r14, new std::string("%r14"));
-    temp_map_->Enter(r15, new std::string("%r15"));
+    names.push_back(new std::string("%rax"));
+    names.push_back(new std::string("%rbx"));
+    names.push_back(new std::string("%rcx"));
+    names.push_back(new std::string("%rdx"));
+    names.push_back(new std::string("%rsi"));
+    names.push_back(new std::string("%rdi"));
+    names.push_back(new std::string("%rbp"));
+    names.push_back(new std::string("%rsp"));
+    names.push_back(new std::string("%r8"));
+    names.push_back(new std::string("%r9"));
+    names.push_back(new std::string("%r10"));
+    names.push_back(new std::string("%r11"));
+    names.push_back(new std::string("%r12"));
+    names.push_back(new std::string("%r13"));
+    names.push_back(new std::string("%r14"));
+    names.push_back(new std::string("%r15"));
 
+    for (auto &name : names) {
+      auto reg = temp::TempFactory::NewTemp();
+      regs_.push_back(reg);
+      temp_map_->Enter(reg, name);
+    }
   };
 
 temp::TempList* X64RegManager::Registers() {
-  static temp::TempList* templist = nullptr;
-  
-  if (templist) return templist;
-  
-  templist = new temp::TempList();
-
-  templist->Append(rax);
-  templist->Append(rdi);
-  templist->Append(rsi);
-  templist->Append(rdx);
-  templist->Append(rcx);
-  templist->Append(r8);
-  templist->Append(r9);
-  templist->Append(r10);
-  templist->Append(r11);
-  templist->Append(rbx);
-  templist->Append(rbp);
-  templist->Append(r12);
-  templist->Append(r13);
-  templist->Append(r14);
-  templist->Append(r15);
+  temp::TempList* templist = new temp::TempList();
+  for (int i = 0; i < 16; i++) {
+    if (i == 7) continue;
+    templist->Append(regs_[i]);
+  }
   return templist;
 };
 
 temp::TempList* X64RegManager::ArgRegs() {
-  static temp::TempList* templist = nullptr;
-
-  if (templist) return templist;
-
-  templist = new temp::TempList();
-  templist->Append(rdi);
-  templist->Append(rsi);
-  templist->Append(rdx);
-  templist->Append(rcx);
-  templist->Append(r8);
-  templist->Append(r9);
+  temp::TempList* templist = new temp::TempList();
+  templist->Append(regs_[5]); //rdi
+  templist->Append(regs_[4]); //rsi
+  templist->Append(regs_[3]); //rdx
+  templist->Append(regs_[2]); //rcx
+  templist->Append(regs_[8]); //r8
+  templist->Append(regs_[9]); //r9
   return templist;
 };
 
 temp::TempList* X64RegManager::CallerSaves() {
-  static temp::TempList* templist = nullptr;
-
-  if (templist) return templist;
-
-  templist = new temp::TempList();
-  templist->Append(rax);
-  templist->Append(rdi);
-  templist->Append(rsi);
-  templist->Append(rdx);
-  templist->Append(rcx);
-  templist->Append(r8);
-  templist->Append(r9);
-  templist->Append(r10);
-  templist->Append(r11);
+  temp::TempList* templist = new temp::TempList();
+  templist->Append(regs_[0]); //rax
+  templist->Append(regs_[2]); //rcx
+  templist->Append(regs_[3]); //rdx
+  templist->Append(regs_[4]); //rsi
+  templist->Append(regs_[5]); //rdi
+  templist->Append(regs_[8]); //r8
+  templist->Append(regs_[9]); //r9
+  templist->Append(regs_[10]); //r10
+  templist->Append(regs_[11]); //r11
   return templist;
 };
 temp::TempList* X64RegManager::CalleeSaves() {
-  static temp::TempList* templist = nullptr;
-
-  if (templist) return templist;
-
-  templist = new temp::TempList();
-  templist->Append(rbx);
-  templist->Append(rbp);
-  templist->Append(r12);
-  templist->Append(r13);
-  templist->Append(r14);
-  templist->Append(r15);
+  temp::TempList* templist = new temp::TempList();
+  templist->Append(regs_[1]); //rbx
+  templist->Append(regs_[6]); //rbp
+  templist->Append(regs_[12]); //r12
+  templist->Append(regs_[13]); //r13
+  templist->Append(regs_[14]); //r14
+  templist->Append(regs_[15]); //r15
   return templist; 
 };
 
 temp::TempList* X64RegManager::ReturnSink() {
-  assert(0);
-  return nullptr;
+  temp::TempList *temp_list = CalleeSaves();
+  temp_list->Append(StackPointer());
+  temp_list->Append(ReturnValue());
+  return temp_list;
 };
 
 int X64RegManager::WordSize() {
@@ -173,16 +137,28 @@ int X64RegManager::WordSize() {
 };
 
 temp::Temp* X64RegManager::FramePointer() {
-  return rbp;
+  return regs_[6];
 };
 
 temp::Temp* X64RegManager::StackPointer() {
-  return rsp;
+  return regs_[7];
 };
 
 temp::Temp* X64RegManager::ReturnValue() {
-  return rax;
+  return regs_[0];
 };
+
+temp::TempList *X64RegManager::CalculateRegs() {
+  auto temp_list = new temp::TempList();
+  temp_list->Append(regs_[3]); //%rdx
+  temp_list->Append(regs_[0]); //%rax
+  return temp_list;
+}
+
+temp::Temp *X64RegManager::GetX64rax() {
+  return regs_[0];
+}
+
 
 Frame *NewFrame(temp::Label *label, const std::list<bool> &formals) {
   return new X64Frame(label, formals);
@@ -192,48 +168,52 @@ tree::Exp* ExternalCall(const std::string name, tree::ExpList* args) {
   return new tree::CallExp(new tree::NameExp(temp::LabelFactory::NamedLabel(name)), args);
 };
 
-tree::Stm* ProcEntryExit1(Frame* frame, tree::Stm* stm) {
-  int num = 1;
-  
-  tree::Stm* viewshift = new tree::ExpStm(new tree::ConstExp(0));
-  
-  auto formal_list = frame->formals_;
-  
-  for (auto formal : formal_list) {
-    if (reg_manager->GetNthArgReg(num))
-      viewshift = new tree::SeqStm(viewshift, new tree::MoveStm(formal->toExp(new tree::TempExp(reg_manager->FramePointer())), new tree::TempExp(reg_manager->GetNthArgReg(num))));
-    else {
-      frame->frame_offset -= reg_manager->WordSize();
-      viewshift = new tree::SeqStm(new tree::MoveStm(formal->toExp(new tree::TempExp(reg_manager->FramePointer())), new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, new tree::TempExp(reg_manager->RBP()), new tree::ConstExp((6 - num) * reg_manager->WordSize())))), viewshift);
+tree::Stm* ProcEntryExit1(Frame* frame, tree::Stm* body) {
+  tree::Stm *view_shift = nullptr, *stm = nullptr;
+  tree::Exp *src, *dst;
+
+  bool reg_over = false;
+  int i = 0;
+  const auto &reg_list = reg_manager->ArgRegs()->GetList();
+  auto iter = reg_list.begin();
+
+  for (frame::Access *access : frame->formals_) {
+    dst = access->toExp(new tree::TempExp(reg_manager->FramePointer()));
+    if (reg_over) {
+      i += 1;
+      src = new tree::MemExp(new tree::BinopExp(
+        tree::BinOp::PLUS_OP,
+        new tree::TempExp(reg_manager->FramePointer()), 
+        new tree::ConstExp(i * reg_manager->WordSize())
+      ));
     }
-    num++;
-  };
-  return new tree::SeqStm(viewshift, stm);
+    else {
+      src = new tree::TempExp(*iter);
+      iter++;
+      reg_over = (iter == reg_list.end());
+    }
+    stm = new tree::MoveStm(dst, src);
+    view_shift = view_shift ? new tree::SeqStm(view_shift, stm) : stm;
+  }
+  return new tree::SeqStm(view_shift, body);
 };
 
 assem::InstrList* ProcEntryExit2(assem::InstrList* body) {
-  static temp::TempList* retlist = nullptr;
-  if (!retlist)
-    retlist = new temp::TempList(reg_manager->ReturnValue());
-  assem::OperInstr* ele = new assem::OperInstr("", nullptr, retlist, new assem::Targets(nullptr));
-  body->Append(ele);
+  body->Append(new assem::OperInstr("", new temp::TempList(), reg_manager->ReturnSink(), nullptr));
   return body;
 };
 
 assem::Proc* ProcEntryExit3(frame::Frame* frame, assem::InstrList* body) {
-  static char instr[256];
-
-  std::string prolog;
-  sprintf(instr, ".set %s_framesize, %d\n", frame->label_name_->Name().c_str(), -frame->frame_offset);
-  prolog = std::string(instr);
-  sprintf(instr, "%s:\n", frame->label_name_->Name(). c_str());
-  prolog.append(std::string(instr));
-  sprintf(instr, "subq $%d, %%rsp\n", -frame->frame_offset);
-  prolog.append(std::string(instr));
-
-  sprintf(instr, "addq $%d, %%rsp\n", -frame->frame_offset);
-  std::string epilog = std::string(instr);
-  epilog.append(std::string("retq\n"));
+  int frame_args = std::max(frame->maxArgs - 6, 0) * reg_manager->WordSize();
+  std::string prolog =
+    ".set " + frame->label_name_->Name() + "_framesize, " + std::to_string(-(frame->frame_offset)) + "\n"
+    + frame->label_name_->Name() + ":\n"
+    + "subq $" + std::to_string(frame_args - frame->frame_offset) + ", %rsp\n"
+    ;
+  std::string epilog = 
+    "addq $" + std::to_string(frame_args - frame->frame_offset) + ", %rsp\n" 
+    + "retq\n"
+    ;
   return new assem::Proc(prolog, body, epilog);
 };
 

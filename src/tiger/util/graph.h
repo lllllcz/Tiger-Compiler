@@ -76,11 +76,12 @@ public:
     delete preds_;
   }
 
+  NodeList<T> *succs_;
+  NodeList<T> *preds_;
+
 private:
   Graph<T> *my_graph_;
   int my_key_;
-  NodeList<T> *succs_;
-  NodeList<T> *preds_;
   T *info_;
   Node<T>()
       : my_graph_(nullptr), my_key_(0), succs_(nullptr), preds_(nullptr),
@@ -95,6 +96,8 @@ public:
   // Make a NodeList
   NodeList<T>() = default;
   ~NodeList<T>() = default;
+
+  explicit NodeList<T>(const std::list<Node<T> *> &list) : node_list_(list){};
 
   // Tell if "a" is in the list
   bool Contain(Node<T> *n);
@@ -215,13 +218,17 @@ template <typename T> void NodeList<T>::CatList(NodeList<T> *nl) {
 
 template <typename T> NodeList<T> *NodeList<T>::Union(NodeList<T> *nl) {
   NodeList<T> *res = new NodeList<T>();
+  
+  std::list<Node<T> *> new_node_list;
   for (auto node : node_list_) {
-    res->Append(node);
+    new_node_list.push_back(node);
   }
   for (auto node : nl->GetList()) {
-    if (!res->Contain(node))
-      res->Append(node);
+    new_node_list.push_back(node);
   }
+  new_node_list.unique();
+  res->node_list_ = new_node_list;
+
   return res;
 }
 

@@ -65,25 +65,10 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
-  [[nodiscard]] virtual temp::Temp* GetNthArgReg(int) = 0;
+  [[nodiscard]] virtual temp::TempList *CalculateRegs() = 0;
 
-  [[nodiscard]] virtual temp::Temp* RAX() = 0;
-  [[nodiscard]] virtual temp::Temp* RDI() = 0;
-  [[nodiscard]] virtual temp::Temp* RSI() = 0;
-  [[nodiscard]] virtual temp::Temp* RDX() = 0;
-  [[nodiscard]] virtual temp::Temp* RCX() = 0;
-  [[nodiscard]] virtual temp::Temp* R8() = 0;
-  [[nodiscard]] virtual temp::Temp* R9() = 0;
-  [[nodiscard]] virtual temp::Temp* R10() = 0;
-  [[nodiscard]] virtual temp::Temp* R11() = 0;
-  [[nodiscard]] virtual temp::Temp* RBX() = 0;
-  [[nodiscard]] virtual temp::Temp* RBP() = 0;
-  [[nodiscard]] virtual temp::Temp* R12() = 0;
-  [[nodiscard]] virtual temp::Temp* R13() = 0;
-  [[nodiscard]] virtual temp::Temp* R14() = 0;
-  [[nodiscard]] virtual temp::Temp* R15() = 0;
-  [[nodiscard]] virtual temp::Temp* RSP() = 0;
-  
+  [[nodiscard]] virtual temp::Temp *GetX64rax() = 0;
+
   temp::Map *temp_map_;
 protected:
   std::vector<temp::Temp *> regs_;
@@ -107,6 +92,7 @@ public:
   std::list<Access *> formals_;
 
   int frame_offset = 0;
+  int maxArgs = 0;
 
   Frame(temp::Label* name, std::list<bool> escapes) : label_name_(name) {};
 

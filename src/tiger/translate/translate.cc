@@ -131,7 +131,7 @@ public:
 };
 
 void ProgTr::Translate() {
-  /* TODO: Put your lab5 code here */
+  /* Put your lab5 code here */
 
   temp::Label* main_label_ = temp::LabelFactory::NamedLabel("tigermain");
   frame::Frame* main_frame_ = frame::NewFrame(main_label_, {});
@@ -140,23 +140,23 @@ void ProgTr::Translate() {
   FillBaseTEnv();
   FillBaseVEnv();
 
-  absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(), main_label_, errormsg_.get());
+  tr::ExpAndTy *tree_tr = absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(), main_label_, errormsg_.get());
+  frags->PushBack(new frame::ProcFrag(tree_tr->exp_->UnNx(), main_frame_));
   return;
 }
 
-tree::Exp* StaticLink(tr::Level* target, tr::Level* current) {
+tree::Exp* StaticLink(tr::Level* current, tr::Level* target) {
   
-  tree::Exp* staticlink = new tree::TempExp(reg_manager->FramePointer());
+  tree::Exp *fp = new tree::TempExp(reg_manager->FramePointer());
   while (current != target) {
-    staticlink = new tree::MemExp(new tree::BinopExp(tree::PLUS_OP, staticlink, new tree::ConstExp(-current->frame_->frame_offset)));    
+    if (!current->parent_) return nullptr;
+    fp = current->frame_->formals_.front()->toExp(fp);
     current = current->parent_;
   }
-  staticlink = new tree::MemExp(new tree::BinopExp(tree::PLUS_OP, staticlink, new tree::ConstExp(current->frame_->frame_offset)));
-
-  return staticlink;
+  return fp;
 }
 
-} // namespace tr
+}
 
 namespace absyn {
 
@@ -174,7 +174,7 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   env::VarEntry *var_entry = (env::VarEntry *)venv->Look(sym_); 
 
-  tree::Exp *fp = StaticLink(var_entry->access_->level_, level);
+  tree::Exp *fp = tr::StaticLink(level, var_entry->access_->level_);
   tr::Exp *exp = new tr::ExExp(var_entry->access_->access_->toExp(fp));
 
   return new tr::ExpAndTy(exp, var_entry->ty_->ActualTy());
@@ -282,12 +282,17 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   
 
   tr::Exp *exp = nullptr;
-  if (fun_entry->level_->parent_ == nullptr)
-    exp = new tr::ExExp(frame::ExternalCall(temp::LabelFactory::LabelString(func_), argexp_list));
-  else {
-    // argexp_list->Insert(tr::StaticLink(fun_entry->level_->parent_, level)); // FIXME: do i need this line?
+  int args_size = (int)argexp_list->GetList().size();
+  tree::Exp *static_link = tr::StaticLink(level, fun_entry->level_->parent_);
+  if (static_link) {
+    argexp_list->Insert(static_link);
+    args_size += 1;
     exp = new tr::ExExp(new tree::CallExp(new tree::NameExp(func_), argexp_list));
-  };
+  }
+  else {
+    exp = new tr::ExExp(frame::ExternalCall(temp::LabelFactory::LabelString(func_), argexp_list));
+  }
+  if (args_size > level->frame_->maxArgs) level->frame_->maxArgs = args_size;
 
   return new tr::ExpAndTy(exp, ty);
 
@@ -309,28 +314,34 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto left_cx = left_tr->exp_->UnCx(errormsg);
     auto right_cx = right_tr->exp_->UnCx(errormsg);
     tree::Stm *seqstm = new tree::SeqStm(left_cx.stm_, new tree::SeqStm(new tree::LabelStm(z), right_cx.stm_));
+
+    left_cx.falses_.DoPatch(z);
+    tr::PatchList true_list = tr::PatchList::JoinPatch(left_cx.trues_, right_cx.trues_);
+    tr::PatchList false_list = right_cx.falses_;
+    exp = new tr::CxExp(true_list, false_list, seqstm);
+    return new tr::ExpAndTy(exp, type::IntTy::Instance());
     
-    if (left_cx.stm_->kind_ == tree::Stm::CJMUP && right_cx.stm_->kind_ == tree::Stm::CJMUP) {
-      static_cast<tree::CjumpStm *>(left_cx.stm_)->false_label_ = z;
+    // if (left_cx.stm_->kind_ == tree::Stm::CJMUP && right_cx.stm_->kind_ == tree::Stm::CJMUP) {
+    //   static_cast<tree::CjumpStm *>(left_cx.stm_)->false_label_ = z;
 
-      tr::PatchList true_list = tr::PatchList({
-        &(static_cast<tree::CjumpStm *>(left_cx.stm_)->true_label_),
-        &(static_cast<tree::CjumpStm *>(right_cx.stm_)->true_label_),
-      });
-      tr::PatchList false_list = tr::PatchList({
-        &(static_cast<tree::CjumpStm *>(right_cx.stm_)->false_label_)
-      });
-      exp = new tr::CxExp(true_list, false_list, seqstm);
-      return new tr::ExpAndTy(exp, type::IntTy::Instance());
-    }
+    //   tr::PatchList true_list = tr::PatchList({
+    //     &(static_cast<tree::CjumpStm *>(left_cx.stm_)->true_label_),
+    //     &(static_cast<tree::CjumpStm *>(right_cx.stm_)->true_label_),
+    //   });
+    //   tr::PatchList false_list = tr::PatchList({
+    //     &(static_cast<tree::CjumpStm *>(right_cx.stm_)->false_label_)
+    //   });
+    //   exp = new tr::CxExp(true_list, false_list, seqstm);
+    //   return new tr::ExpAndTy(exp, type::IntTy::Instance());
+    // }
 
-    if (left_cx.stm_->kind_ == tree::Stm::SEQ && right_cx.stm_->kind_ == tree::Stm::CJMUP) {
-      left_cx.falses_.DoPatch(z);
-      tr::PatchList true_list = tr::PatchList::JoinPatch(left_cx.trues_, right_cx.trues_);
-      tr::PatchList false_list = right_cx.falses_;
-      exp = new tr::CxExp(true_list, false_list, seqstm);
-      return new tr::ExpAndTy(exp, type::IntTy::Instance());
-    } 
+    // if (left_cx.stm_->kind_ == tree::Stm::SEQ && right_cx.stm_->kind_ == tree::Stm::CJMUP) {
+    //   left_cx.falses_.DoPatch(z);
+    //   tr::PatchList true_list = tr::PatchList::JoinPatch(left_cx.trues_, right_cx.trues_);
+    //   tr::PatchList false_list = right_cx.falses_;
+    //   exp = new tr::CxExp(true_list, false_list, seqstm);
+    //   return new tr::ExpAndTy(exp, type::IntTy::Instance());
+    // } 
   }
 
   if (oper_ == absyn::AND_OP) {
@@ -338,29 +349,35 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto left_cx = left_tr->exp_->UnCx(errormsg);
     auto right_cx = right_tr->exp_->UnCx(errormsg);
     tree::Stm *seqstm = new tree::SeqStm(left_cx.stm_, new tree::SeqStm(new tree::LabelStm(z), right_cx.stm_));
+
+    left_cx.trues_.DoPatch(z);
+    tr::PatchList true_list = right_cx.trues_;
+    tr::PatchList false_list = tr::PatchList::JoinPatch(left_cx.falses_, right_cx.falses_);
+    exp = new tr::CxExp(true_list, false_list, seqstm);
+    return new tr::ExpAndTy(exp, type::IntTy::Instance());
  
-    if (typeid(*left_cx.stm_) == typeid(tree::CjumpStm) && typeid(*right_cx.stm_) == typeid(tree::CjumpStm)) {
-      static_cast<tree::CjumpStm *>(left_cx.stm_)->true_label_ = z;
+    // if (typeid(*left_cx.stm_) == typeid(tree::CjumpStm) && typeid(*right_cx.stm_) == typeid(tree::CjumpStm)) {
+    //   static_cast<tree::CjumpStm *>(left_cx.stm_)->true_label_ = z;
 
-      tr::PatchList true_list = tr::PatchList({
-        &(static_cast<tree::CjumpStm *>(right_cx.stm_)->true_label_)
-      });
-      tr::PatchList false_list = tr::PatchList({
-        &(static_cast<tree::CjumpStm *>(left_cx.stm_)->false_label_),
-        &(static_cast<tree::CjumpStm *>(right_cx.stm_)->false_label_),
-      });
+    //   tr::PatchList true_list = tr::PatchList({
+    //     &(static_cast<tree::CjumpStm *>(right_cx.stm_)->true_label_)
+    //   });
+    //   tr::PatchList false_list = tr::PatchList({
+    //     &(static_cast<tree::CjumpStm *>(left_cx.stm_)->false_label_),
+    //     &(static_cast<tree::CjumpStm *>(right_cx.stm_)->false_label_),
+    //   });
       
-      exp = new tr::CxExp(true_list, false_list, seqstm);
-      return new tr::ExpAndTy(exp, type::IntTy::Instance());
-    }
+    //   exp = new tr::CxExp(true_list, false_list, seqstm);
+    //   return new tr::ExpAndTy(exp, type::IntTy::Instance());
+    // }
 
-    if (typeid(*left_cx.stm_) == typeid(tree::SeqStm) && typeid(*right_cx.stm_) == typeid(tree::CjumpStm)) {
-      left_cx.trues_.DoPatch(z);
-      tr::PatchList true_list = right_cx.trues_;
-      tr::PatchList false_list = tr::PatchList::JoinPatch(left_cx.falses_, right_cx.falses_);
-      exp = new tr::CxExp(true_list, false_list, seqstm);
-      return new tr::ExpAndTy(exp, type::IntTy::Instance());
-    } 
+    // if (typeid(*left_cx.stm_) == typeid(tree::SeqStm) && typeid(*right_cx.stm_) == typeid(tree::CjumpStm)) {
+    //   left_cx.trues_.DoPatch(z);
+    //   tr::PatchList true_list = right_cx.trues_;
+    //   tr::PatchList false_list = tr::PatchList::JoinPatch(left_cx.falses_, right_cx.falses_);
+    //   exp = new tr::CxExp(true_list, false_list, seqstm);
+    //   return new tr::ExpAndTy(exp, type::IntTy::Instance());
+    // } 
   }
 
   switch (oper_) {
@@ -667,22 +684,12 @@ tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
-  /* TODO: Put your lab5 code here */
-  
-  static bool first = true;
-  bool isMain = false;
-  if (first) {
-    isMain = true;
-    first = false;
-  };
-
+  /* Put your lab5 code here */
+ 
   tree::Stm* stm = nullptr;
   tree::Exp* res = nullptr;
   type::Ty* ty = type::VoidTy::Instance();
 
-  venv->BeginScope();
-  tenv->BeginScope();
-  
   if (decs_ != nullptr) {
     std::list<Dec *> list = decs_->GetList();
     auto iter = list.begin();
@@ -694,60 +701,11 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   };
 
   tr::ExpAndTy* body_tr = body_->Translate(venv, tenv, level, label, errormsg);
-
-  venv->EndScope();
-  tenv->EndScope();
   
   if (stm != nullptr) res = new tree::EseqExp(stm, body_tr->exp_->UnEx());
   else res = body_tr->exp_->UnEx();
 
-  if (isMain) {
-    frags->PushBack(new frame::ProcFrag(new tree::ExpStm(res), level->frame_));
-    isMain = false;
-  };
-  return new tr::ExpAndTy(new tr::ExExp(res), body_tr->ty_->ActualTy());
-
-  // static bool isMain = true;
-  
-  // venv->BeginScope();
-  // tenv->BeginScope();
-
-  // std::list<tr::Exp *> dec_tr_list;
-  
-  // for (auto dec : decs_->GetList()) {
-  //     dec_tr_list.push_back(dec->Translate(venv, tenv, level, label, errormsg));
-  // }
-  
-  // tr::ExpAndTy * body_tr = body_->Translate(venv, tenv, level, label, errormsg);
-
-  // tr::Exp *exp = nullptr;
-  // for (auto dec_tr : dec_tr_list) {
-  //   if (exp = nullptr) {
-  //     exp = dec_tr;
-  //   } else if (dec_tr) {
-  //     exp = new tr::ExExp(new tree::EseqExp(exp->UnNx(), dec_tr->UnEx()));
-  //   } else {
-  //     exp = new tr::ExExp(new tree::EseqExp(exp->UnNx(), new tree::ConstExp(0)));
-  //   }
-  // }
-
-  // venv->EndScope();
-  // tenv->EndScope();
-
-  // tree::Exp *te = nullptr;
-  // if (exp == nullptr) {
-  //   exp = body_tr->exp_;
-  //   te = exp->UnEx();
-  // } else {
-  //   te = new tree::EseqExp(exp->UnNx(), body_tr->exp_->UnEx());
-  //   exp = new tr::ExExp(te);
-  // }
-  // if (isMain) {
-  //   frags->PushBack(new frame::ProcFrag(new tree::ExpStm(te), level->frame_));
-  //   isMain = false;
-  // };
-
-  // return new tr::ExpAndTy(exp, body_tr->ty_);
+  return new tr::ExpAndTy(new tr::ExExp(res), body_tr->ty_);
 }
 
 tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -796,6 +754,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       escapes.push_back(field->escape_);
     }
 
+    escapes.push_front(true);
     tr::Level* new_level = new tr::Level(frame::NewFrame(func->name_, escapes), level);
     
     if (!func->result_) {
@@ -811,11 +770,12 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   // translate each function
   for (auto func : func_list) {
     venv->BeginScope();
+    type::TyList *ty_list = func->params_->MakeFormalTyList(tenv, errormsg);
     env::FunEntry* func_entry = (env::FunEntry *)venv->Look(func->name_);
 
     auto type_iter = func_entry->formals_->GetList().begin();
     const auto access_list = func_entry->level_->frame_->formals_;
-    auto access_iter = access_list.begin();
+    auto access_iter = std::next(access_list.begin());
 
     for (auto& param : func->params_->GetList()) {
       venv->Enter(param->name_, new env::VarEntry(new tr::Access(func_entry->level_, *access_iter), *type_iter));
@@ -861,15 +821,6 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   /* Put your lab5 code here */
 
   const auto ty_list = types_->GetList();
-  
-  // for (auto name_and_type : ty_list) {
-  //   for (auto check_name : ty_list) {
-  //     if (check_name->name_->Name() == name_and_type->name_->Name()) {
-  //       errormsg->Error(pos_, "two types have the same name");
-  //     }
-  //   }
-  //   tenv->Enter(name_and_type->name_, new type::NameTy(name_and_type->name_, nullptr));
-  // }
 
   auto tylist_iter = ty_list.begin();
   while (tylist_iter != ty_list.end()) {

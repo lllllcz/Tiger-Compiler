@@ -7,6 +7,8 @@
 #include "tiger/liveness/flowgraph.h"
 #include "tiger/util/graph.h"
 
+#include <map>
+
 namespace live {
 
 using INode = graph::Node<temp::Temp>;
@@ -40,6 +42,7 @@ private:
 struct LiveGraph {
   IGraphPtr interf_graph;
   MoveList *moves;
+  std::map<temp::Temp*, double> priority;
 
   LiveGraph(IGraphPtr interf_graph, MoveList *moves)
       : interf_graph(interf_graph), moves(moves) {}
