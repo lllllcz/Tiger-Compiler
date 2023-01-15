@@ -66,12 +66,16 @@ void RegAllocator::RewriteProgram(const live::INodeList *spilledNodes)
 
         auto new_temp = temp::TempFactory::NewTemp();
 
-        std::string new_instr_str = "movq (" + frame_->label_name_->Name() + "_framesize-" + std::to_string(-frame_->frame_offset) + ")(`s0), `d0";
-        auto new_instr = new assem::OperInstr(new_instr_str, new temp::TempList({new_temp}), new temp::TempList({reg_manager->StackPointer()}), nullptr);
-        new_instr_list->Append(new_instr);
-
         // update the temp in the Use
         instr->Use()->replaceTemp(temp, new_temp);
+
+        // append instr
+        new_instr_list->Append(new assem::OperInstr(
+          "movq (" + frame_->label_name_->Name() + "_framesize-" + std::to_string(-frame_->frame_offset) + ")(`s0), `d0",
+          new temp::TempList({new_temp}),
+          new temp::TempList({reg_manager->StackPointer()}),
+          nullptr
+        ));
       }
 
       new_instr_list->Append(instr);
@@ -82,12 +86,16 @@ void RegAllocator::RewriteProgram(const live::INodeList *spilledNodes)
 
         auto new_temp = temp::TempFactory::NewTemp();
 
-        std::string new_instr_str = "movq `s0, (" + frame_->label_name_->Name() + "_framesize-" + std::to_string(-frame_->frame_offset) + ")(`d0)";
-        auto new_instr = new assem::OperInstr(new_instr_str, new temp::TempList({reg_manager->StackPointer()}), new temp::TempList({new_temp}), nullptr);
-        new_instr_list->Append(new_instr);
-
         // update the temp in the Def
         instr->Def()->replaceTemp(temp, new_temp);
+
+        // append instr
+        new_instr_list->Append(new assem::OperInstr(
+          "movq `s0, (" + frame_->label_name_->Name() + "_framesize-" + std::to_string(-frame_->frame_offset) + ")(`d0)", 
+          new temp::TempList({reg_manager->StackPointer()}),
+          new temp::TempList({new_temp}), 
+          nullptr
+        ));
       }
     }
 

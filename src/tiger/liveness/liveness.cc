@@ -51,14 +51,15 @@ void LiveGraphFactory::LiveMap() {
   /* TODO: Put your lab6 code here */
 
   const auto &cfg_nodes = flowgraph_->Nodes()->GetList();
+
+  /* init */
   for (auto node : cfg_nodes) {
     in_->Enter(node, new temp::TempList());
     out_->Enter(node, new temp::TempList());
   }
 
-  bool isChanged = true;
-  while (isChanged) {
-    isChanged = false;
+  while (true) {
+    bool isChanged = false;
 
     for (auto node : cfg_nodes) {
 
@@ -86,6 +87,7 @@ void LiveGraphFactory::LiveMap() {
       }
 
     }
+    if (!isChanged) break;
   }
 
 }
@@ -96,7 +98,6 @@ void LiveGraphFactory::InterfGraph() {
   live_graph_.interf_graph = new IGraph();
   live_graph_.moves = new MoveList();
 
-  const auto rsp = reg_manager->StackPointer();
   const auto &registers = reg_manager->Registers()->GetList();
 
   /* add machine register nodes */
@@ -116,13 +117,10 @@ void LiveGraphFactory::InterfGraph() {
   }
 
   /* add edge for machine registers */
-  for (auto iter1 = registers.begin(); iter1 != registers.end(); ++iter1) {
-    for (auto iter2 = std::next(iter1); iter2 != registers.end(); ++iter2) {
-      auto node1 = temp_node_map_->Look(*iter1);
-      auto node2 = temp_node_map_->Look(*iter2);
-
-      live_graph_.interf_graph->AddEdge(node1, node2);
-      live_graph_.interf_graph->AddEdge(node2, node1);
+  for (auto iter1 : registers) {
+    for (auto iter2 : registers) {
+      live_graph_.interf_graph->AddEdge(temp_node_map_->Look(iter1), temp_node_map_->Look(iter2));
+      live_graph_.interf_graph->AddEdge(temp_node_map_->Look(iter2), temp_node_map_->Look(iter1));
     }
   }
 
@@ -132,17 +130,11 @@ void LiveGraphFactory::InterfGraph() {
     if (typeid(*instr) != typeid(assem::MoveInstr)) {
       /* not move */
       for (auto def_reg : instr->Def()->GetList()) {
-        if (def_reg == rsp) continue;
-
-        auto left_value_node = temp_node_map_->Look(def_reg);
-
         for (auto out_reg : out_->Look(node)->GetList()) {
-          if (out_reg == rsp) continue;
+          if (out_reg == reg_manager->StackPointer()) continue;
 
-          auto out_active_node = temp_node_map_->Look(out_reg);
-
-          live_graph_.interf_graph->AddEdge(left_value_node, out_active_node);
-          live_graph_.interf_graph->AddEdge(out_active_node, left_value_node);
+          live_graph_.interf_graph->AddEdge(temp_node_map_->Look(def_reg), temp_node_map_->Look(out_reg));
+          live_graph_.interf_graph->AddEdge(temp_node_map_->Look(out_reg), temp_node_map_->Look(def_reg));
         }
 
       }
@@ -150,21 +142,19 @@ void LiveGraphFactory::InterfGraph() {
     else {
       /* move */
       for (auto def_reg : instr->Def()->GetList()) {
-        auto left_value_node = temp_node_map_->Look(def_reg);
         auto use_regs = instr->Use();
         
         for (auto out_reg : out_->Look(node)->GetList()) {
           if (use_regs->Contain(out_reg))
             continue;
-          auto out_active_node = temp_node_map_->Look(out_reg);
-          live_graph_.interf_graph->AddEdge(left_value_node, out_active_node);
-          live_graph_.interf_graph->AddEdge(out_active_node, left_value_node);
+          live_graph_.interf_graph->AddEdge(temp_node_map_->Look(def_reg), temp_node_map_->Look(out_reg));
+          live_graph_.interf_graph->AddEdge(temp_node_map_->Look(out_reg), temp_node_map_->Look(def_reg));
         }
 
+        /* add move related regs */
         for (auto use_reg : instr->Use()->GetList()) {
-          auto use_node = temp_node_map_->Look(use_reg);
-          if (!live_graph_.moves->Contain(use_node, left_value_node))
-            live_graph_.moves->Append(use_node, left_value_node);
+          if (!live_graph_.moves->Contain(temp_node_map_->Look(use_reg), temp_node_map_->Look(def_reg)))
+            live_graph_.moves->Append(temp_node_map_->Look(use_reg), temp_node_map_->Look(def_reg));
         }
 
       }
