@@ -327,13 +327,13 @@ void Color::FreezeMoves(live::INodePtr u) {
 void Color::SelectSpill() {
   live::INodePtr m = nullptr;
 
-  double chosen_priority = 1e20;
-  for (auto tmp : spillWorklist.GetList()) {
-    if (!spillNodes.Contain(tmp) && !precolor(tmp)) {
-      double cal = live_graph_.priority[tmp->NodeInfo()] / double (degree[tmp]);
-      if (cal < chosen_priority) {
-        m = tmp;
-        chosen_priority = cal;
+  double min_priority = 1e10;
+  for (auto node : spillWorklist.GetList()) {
+    if (!spillNodes.Contain(node) && !precolor(node)) {
+      double p = live_graph_.priority[node->NodeInfo()];
+      if (p < min_priority) {
+        m = node;
+        min_priority = p;
       }
     }
   };

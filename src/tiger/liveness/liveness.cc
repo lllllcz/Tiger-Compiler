@@ -170,7 +170,12 @@ void LiveGraphFactory::InterfGraph() {
         live_graph_.priority[def_or_use] = 0;
       live_graph_.priority[def_or_use] += 1;
     };
-  };
+  }
+  for (auto node : live_graph_.interf_graph->Nodes()->GetList()) {
+    if (live_graph_.priority.find(node->NodeInfo()) == live_graph_.priority.end())
+      live_graph_.priority[node->NodeInfo()] = 0;
+    live_graph_.priority[node->NodeInfo()] /= node->Degree();
+  }
 
 }
 
